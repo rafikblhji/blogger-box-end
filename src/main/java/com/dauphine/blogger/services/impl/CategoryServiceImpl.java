@@ -1,12 +1,11 @@
 package com.dauphine.blogger.services.impl;
 
+import com.dauphine.blogger.exceptions.CategoryNotFoundException;
 import com.dauphine.blogger.models.Category;
 import com.dauphine.blogger.repository.CategoryRepository;
 import com.dauphine.blogger.services.CategoryService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,14 +13,9 @@ import java.util.UUID;
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository repository;
-    private final List<Category> temporaryCategories;
 
     public CategoryServiceImpl(CategoryRepository repository) {
-        this.repository=repository;
-        temporaryCategories = new ArrayList<>();
-        temporaryCategories.add(new Category(UUID.randomUUID(), "my first category"));
-        temporaryCategories.add(new Category(UUID.randomUUID(), "my second category"));
-        temporaryCategories.add(new Category(UUID.randomUUID(), "my third category"));
+        this.repository = repository;
     }
 
     @Override
@@ -30,9 +24,9 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public Category getById(UUID id) {
+    public Category getById(UUID id) throws CategoryNotFoundException {
         return repository.findById(id)
-                .orElse(null);
+                .orElseThrow(() -> new CategoryNotFoundException(id));
     }
 
     @Override
@@ -42,13 +36,10 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public Category updateName(UUID id, String name) {
+    public Category updateName(UUID id, String name) throws CategoryNotFoundException {
         Category category = getById(id);
-        if (category != null) {
-            category.setName(name);
-            return repository.save(category);
-        }
-        return null;
+        category.setName(name);
+        return repository.save(category);
     }
 
     @Override

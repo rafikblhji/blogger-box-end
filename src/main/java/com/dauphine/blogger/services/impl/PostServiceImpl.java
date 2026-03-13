@@ -1,68 +1,62 @@
 package com.dauphine.blogger.services.impl;
 
+import com.dauphine.blogger.exceptions.CategoryNotFoundException;
+import com.dauphine.blogger.exceptions.PostNotFoundException;
 import com.dauphine.blogger.models.Category;
 import com.dauphine.blogger.models.Post;
+import com.dauphine.blogger.repository.PostRepository;
 import com.dauphine.blogger.services.CategoryService;
 import com.dauphine.blogger.services.PostService;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class PostServiceImpl implements PostService {
 
-    private final List<Post> temporaryPosts;
+    private final PostRepository repository;
     private final CategoryService categoryService;
 
-    public PostServiceImpl(CategoryService categoryService) {
+    public PostServiceImpl(PostRepository repository, CategoryService categoryService) {
+        this.repository = repository;
         this.categoryService = categoryService;
-        this.temporaryPosts = new ArrayList<>();
     }
 
     @Override
     public List<Post> getAll() {
-        return temporaryPosts;
+        return repository.findAll();
     }
 
     @Override
     public List<Post> getAllByCategoryId(UUID categoryId) {
-        return temporaryPosts.stream()
-                .filter(post -> post.getCategory() != null
-                        && categoryId.equals(post.getCategory().getId()))
-                .collect(Collectors.toList());
+        return repository.findAllByCategoryId(categoryId);
     }
 
     @Override
-    public Post getById(UUID id) {
-        return temporaryPosts.stream()
-                .filter(post -> id.equals(post.getId()))
-                .findFirst()
-                .orElse(null);
+    public Post getById(UUID id) throws PostNotFoundException {
+        return repository.findById(id)
+                .orElseThrow(() -> new PostNotFoundException(id));
     }
 
     @Override
-    public Post create(String title, String content, UUID categoryId) {
+    public Post create(String title, String content, UUID categoryId) throws CategoryNotFoundException {
         Category category = categoryService.getById(categoryId);
         Post post = new Post(UUID.randomUUID(), title, content, category);
-        temporaryPosts.add(post);
-        return post;
+        return repository.save(post);
     }
 
     @Override
-    public Post update(UUID id, String title, String content) {
+    public Post update(UUID id, String title, String content) throws PostNotFoundException {
         Post post = getById(id);
-        if (post != null) {
-            post.setTitle(title);
-            post.setContent(content);
-        }
-        return post;
+        post.setTitle(title);
+        post.setContent(content);
+        return repository.save(post);
     }
 
     @Override
     public boolean deleteById(UUID id) {
-        return temporaryPosts.removeIf(post -> id.equals(post.getId()));
+        repository.deleteById(id);
+        return true;
     }
 }
